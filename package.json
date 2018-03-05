@@ -1,7 +1,7 @@
 {
   "name": "contego",
   "version": "0.0.5",
-  "description": "simple code protect for javascript files",
+  "description": "Simple code protect for javascript files",
   "main": "index.js",
   "scripts": {},
   "engines": {
