@@ -1,0 +1,32 @@
+{
+  "name": "contego",
+  "version": "0.0.1",
+  "description": "simple code protect for javascript files",
+  "main": "index.js",
+  "scripts": {},
+  "engines": {
+    "node": ">=8.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/pradeep-mishra/contego.git"
+  },
+  "keywords": [
+    "protect"
+  ],
+  "author": "Pradeep Mishra <pradeep23oct@gmail.com>",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/pradeep-mishra/contego/issues"
+  },
+  "homepage": "https://github.com/pradeep-mishra/contego#readme",
+  "dependencies": {
+    "commander": "^2.14.1",
+    "confusion": "^0.1.1",
+    "escodegen": "^1.9.1",
+    "esprima": "^4.0.0",
+    "fs-extra": "^5.0.0",
+    "uglify-es": "^3.3.9",
+    "uglify-js": "^3.3.13"
+  }
+}
