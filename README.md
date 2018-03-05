@@ -11,8 +11,8 @@ Contego is a simple tool to obfucate code and make it harder for user to read so
 $ contego <source dir> <dest dir> -u js|es|null -d true|false -i ^\w\\.js$
 - source dir = source directory
 - dest dir = destination directory
-- -u = use uglify, es for es6 files, js for es5 or below and null for skipping uglify
-- -d = debug mode, for extra logging
+- -u = use uglify, true or false
+- -d = debug mode,true or false for extra logging
 - -i = ignore regex string, provide regex to ignore any files define by user
 
 ## Example

@@ -5,7 +5,6 @@ const escodegen = require('escodegen')
 const confusion = require('confusion')
 const esprima = require('esprima')
 const uglifyES = require('uglify-es')
-const uglifyJS = require('uglify-js')
 
 function getAllFiles(sourcePath, destPath, debug = false, ignoreRegex = undefined) {
     let cabinet = [];
@@ -54,20 +53,27 @@ function contego(filepath, es = false, debug = false) {
     if (debug) {
         console.log(`converting file ${filepath}`)
     }
+
     let ast = esprima.parse(contents)
     let obfuscated = confusion.transformAst(ast, confusion.createVariableName)
     let confused = escodegen.generate(obfuscated)
-    if (typeof (es) === 'boolean') {
-        let resp = null;
-        if (es === true) {
-            resp = uglifyES.minify({ [filepath]: confused }, { warnings: true })
-        } else {
-            resp = uglifyJS.minify({ [filepath]: confused }, { warnings: true })
+    if (es === true) {
+        let opts = {
+            warnings: debug,
+            debug: debug,
+            beautify: false,
+            bracketize: true,
+            compress: {
+                drop_debugger: true,
+                dead_code: true,
+                passes: 2
+            }
         }
+        let resp = uglifyES.minify({ [filepath]: confused })
         if (resp.error) {
             throw resp.error
         } else if (resp.warnings) {
-            console.warn(resp.warnings)
+            console.warn(resp.warnings, filepath)
         }
         return resp.code
     }
@@ -95,7 +101,7 @@ function convertAll(sourcePath, destPath, es = false, error = false, debug = fal
                 if (error) {
                     throw e
                 }
-                console.warn(`error while converting file ${file}`)
+                console.warn(`error while converting file ${file} ${e.message}`)
                 fs.copyFileSync(file, dpath)
             }
         })
@@ -116,16 +122,16 @@ program
     .version(require('./package').version, '-v, --version')
     .usage('/Users/pradeep/sourcedir /Users/pradeep/destdir -u js -d false')
     .option('-e, --error [type]', 'throw error [true|false]', 'false')
-    .option('-u, --uglify [type]', 'Use uglify, define type of js syntax [js|es|null]', 'es')
+    .option('-u, --uglify [type]', 'Use uglify [true|false]', 'true')
     .option('-d, --debug [type]', 'Run in debug mode type of debug [false|true]', 'false')
     .option('-r, --ignore [ignoreRegexString]', 'Regex value to ignore files like ^[a-zA-Z0-9_]+\.js', '')
 
 program
     .arguments('<source_dir> <dest_dir>')
     .action(function (src, dest) {
-        if (program.uglify == 'es') {
+        if (program.uglify == 'true') {
             program.uglify = true;
-        } else if (program.uglify == 'js') {
+        } else {
             program.uglify = false;
         }
         if (!program.ignore) {
