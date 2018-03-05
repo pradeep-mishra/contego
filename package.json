@@ -1,18 +1,22 @@
 {
   "name": "contego",
-  "version": "0.0.7",
-  "description": "Simple code protect for javascript files",
+  "version": "0.0.8",
+  "description": "A simple tool to obfuscate++ your js code and make it harder for user to read source files ",
   "main": "index.js",
   "scripts": {},
   "engines": {
-    "node": ">=8.0"
+    "node": ">=6.0"
   },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/pradeep-mishra/contego.git"
   },
   "keywords": [
-    "protect"
+    "protect",
+    "code-protect",
+    "code",
+    "protection",
+    "uglify"
   ],
   "author": "Pradeep Mishra <pradeep23oct@gmail.com>",
   "license": "ISC",

@@ -6,7 +6,7 @@ npm i contego -g
 
 
 ## Get Started
-Contego is a simple tool to obfucate++ your js code and make it harder for user to read source files 
+A simple tool to obfuscate++ your js code and make it harder for user to read source files 
 ## Usage
 ``` bash
 $ contego source_dir dest_dir -u true|false -d true|false -i ^\w+\.test.js$
