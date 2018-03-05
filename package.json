@@ -1,6 +1,6 @@
 {
   "name": "contego",
-  "version": "0.0.1",
+  "version": "0.0.3",
   "description": "simple code protect for javascript files",
   "main": "index.js",
   "scripts": {},

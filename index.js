@@ -95,8 +95,6 @@ program
 program
     .arguments('<source_dir> <dest_dir>')
     .action(function (src, dest) {
-        console.log(src, dest)
-        console.log(program.uglify, program.debug, program.ignore)
         if (program.uglify == 'es') {
             program.uglify = true;
         } else if (program.uglify == 'js') {
