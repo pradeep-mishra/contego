@@ -57,6 +57,10 @@ function contego(filepath, es = false, debug = false) {
     let ast = esprima.parse(contents)
     let obfuscated = confusion.transformAst(ast, confusion.createVariableName)
     let confused = escodegen.generate(obfuscated)
+    return confused
+}
+
+function uglify(filepath, code, es = false, debug = false) {
     if (es === true) {
         let opts = {
             warnings: debug,
@@ -69,7 +73,7 @@ function contego(filepath, es = false, debug = false) {
                 passes: 2
             }
         }
-        let resp = uglifyES.minify({ [filepath]: confused })
+        let resp = uglifyES.minify({ [filepath]: code }, opts)
         if (resp.error) {
             throw resp.error
         } else if (resp.warnings) {
@@ -77,7 +81,31 @@ function contego(filepath, es = false, debug = false) {
         }
         return resp.code
     }
-    return confused
+    return code
+}
+
+function uglifyMultiple(codeObj, es = false, debug = false) {
+    if (es === true) {
+        let opts = {
+            warnings: debug,
+            debug: debug,
+            beautify: false,
+            bracketize: true,
+            compress: {
+                drop_debugger: true,
+                dead_code: true,
+                passes: 2
+            }
+        }
+        let resp = uglifyES.minify(codeObj, opts)
+        if (resp.error) {
+            throw resp.error
+        } else if (resp.warnings) {
+            console.warn(resp.warnings, filepath)
+        }
+        return resp.code
+    }
+    return codeObj
 }
 
 function writeFile(filepath, data) {
@@ -86,13 +114,45 @@ function writeFile(filepath, data) {
 }
 
 
-function convertAll(sourcePath, destPath, es = false, error = false, debug = false, ignorRegexStr = undefined) {
+function convertAll(sourcePath, destPath, opts = { es = false, error = false, debug = false, ignorRegexStr = undefined, singleFile = false }) {
+    let es = opts.es
+    let error = opts.error
+    let debug = opts.debug
+    let ignorRegexStr = opts.ignorRegexStr
+    let singleFile = opts.singleFile
     const jsFiles = getAllFiles(sourcePath, destPath, debug, ignorRegexStr)
-    try {
+    if (singleFile) {
+        jsFiles = jsFiles.reduce(function (initial, file) {
+            let dpath = file.replace(sourcePath, destPath)
+            try {
+                let contents = contego(file, es, debug)
+                if (debug) {
+                    console.log(`writing file ${dpath}`)
+                }
+                initial[file] = contego
+            } catch (e) {
+                if (error) {
+                    throw e
+                }
+                console.warn(`error while converting file ${file} ${e.message}`)
+                fs.copyFileSync(file, dpath)
+            }
+            return initial
+        }, {})
+        contents = uglifyMultiple(jsFiles, es, debug)
+        let dpath = path.join(destPath, 'index.js')
+        if (debug) {
+            console.log(`writing file ${dpath}`)
+        }
+        writeFile(dpath, contents)
+    } else {
         jsFiles.forEach(function (file) {
             let dpath = file.replace(sourcePath, destPath)
             try {
-                const contents = contego(file, es, debug)
+                let contents = contego(file, es, debug)
+                if (contents) {
+                    contents = uglify(file, contents, es, debug)
+                }
                 if (debug) {
                     console.log(`writing file ${dpath}`)
                 }
@@ -105,11 +165,6 @@ function convertAll(sourcePath, destPath, es = false, error = false, debug = fal
                 fs.copyFileSync(file, dpath)
             }
         })
-    } catch (e) {
-        if (error) {
-            throw e
-        }
-        console.warn(`error while converting file ${e.message}`)
     }
     console.log(`all js files contego'ed successfully`)
 }
@@ -119,9 +174,10 @@ var program = require('commander')
 program
     .version(require('./package').version, '-v, --version')
     .usage('/Users/pradeep/sourcedir /Users/pradeep/destdir -u js -d false')
-    .option('-e, --error [type]', 'throw error [true|false]', 'false')
+    .option('-s, --single [type]', 'Make single output index.js file  [true|false]', 'false')
+    .option('-e, --error [type]', 'Throw error [true|false]', 'false')
     .option('-u, --uglify [type]', 'Use uglify [true|false]', 'true')
-    .option('-d, --debug [type]', 'Run in debug mode type of debug [false|true]', 'false')
+    .option('-d, --debug [type]', 'Run in debug mode type of debug [true|false]', 'false')
     .option('-r, --ignore [ignoreRegexString]', 'Regex value to ignore files like ^[a-zA-Z0-9_]+\.js', '')
 
 program
@@ -145,9 +201,20 @@ program
         } else {
             program.debug = false;
         }
+        if (program.single == 'true') {
+            program.single = true;
+        } else {
+            program.single = false;
+        }
         src = src.replace(/\/+$/, '')
         dest = dest.replace(/\/+$/, '')
-        convertAll(src, dest, program.uglify, program.error, program.debug, program.ignore)
+        convertAll(src, dest, {
+            es: program.uglify,
+            error: program.error,
+            debug: program.debug,
+            ignorRegexStr: program.ignore,
+            singleFile: program.single
+        })
     })
 
 program.parse(process.argv)
