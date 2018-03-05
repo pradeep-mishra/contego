@@ -111,9 +111,7 @@ function convertAll(sourcePath, destPath, es = false, error = false, debug = fal
         }
         console.warn(`error while converting file ${e.message}`)
     }
-    if (debug) {
-        console.log(`all js files contego'ed successfully`)
-    }
+    console.log(`all js files contego'ed successfully`)
 }
 
 var program = require('commander')
@@ -147,6 +145,8 @@ program
         } else {
             program.debug = false;
         }
+        src = src.replace(/\/+$/, '')
+        dest = dest.replace(/\/+$/, '')
         convertAll(src, dest, program.uglify, program.error, program.debug, program.ignore)
     })
 
