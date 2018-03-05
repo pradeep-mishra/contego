@@ -21,12 +21,11 @@
   },
   "homepage": "https://github.com/pradeep-mishra/contego#readme",
   "dependencies": {
-    "commander": "^2.14.1",
-    "confusion": "^0.1.1",
-    "escodegen": "^1.9.1",
-    "esprima": "^4.0.0",
-    "fs-extra": "^5.0.0",
-    "uglify-es": "^3.3.9",
-    "uglify-js": "^3.3.13"
+    "commander": "2.14.1",
+    "confusion": "0.1.1",
+    "escodegen": "1.9.1",
+    "esprima": "4.0.0",
+    "fs-extra": "5.0.0",
+    "uglify-es": "3.3.9"
   }
 }
