@@ -1,4 +1,3 @@
-#!/usr/bin/env node
 
 const fs = require('fs-extra')
 const path = require('path')
@@ -8,7 +7,7 @@ const esprima = require('esprima')
 const uglifyES = require('uglify-es')
 const uglifyJS = require('uglify-js')
 
-function getAllFiles(sourcePath, ignoreRegex = undefined) {
+function getAllFiles(sourcePath, destPath, debug = false, ignoreRegex = undefined) {
     let cabinet = [];
     let files = fs.readdirSync(sourcePath)
     if (ignoreRegex) {
@@ -19,15 +18,27 @@ function getAllFiles(sourcePath, ignoreRegex = undefined) {
         try {
             let stat = fs.lstatSync(fullpath)
             if (stat.isDirectory()) {
-                if (name == 'node_modules') {
+                if (name.match(/node_modules|\.git/i)) {
                     return true;
                 }
                 if (ignoreRegex && name.match(ignoreRegex)) {
                     return true;
                 }
-                cabinet = cabinet.concat(getAllFiles(fullpath))
-            } else if (stat.isFile() && path.extname(name) === '.js') {
-                cabinet.push(fullpath);
+                let newDest = fullpath.replace(sourcePath, destPath)
+                cabinet = cabinet.concat(getAllFiles(fullpath, newDest, debug, ignoreRegex))
+            } else if (stat.isFile()) {
+                //console.log('file', fullpath)
+                if (path.extname(name) === '.js') {
+                    //console.log('pushing', fullpath)
+                    cabinet.push(fullpath)
+                } else {
+                    //console.log('copying', fullpath, sourcePath, destPath)
+                    let dpath = fullpath.replace(sourcePath, destPath)
+                    if (debug) {
+                        console.log(`copying file ${fullpath} to ${dpath}`)
+                    }
+                    fs.copyFileSync(fullpath, dpath)
+                }
             }
         } catch (e) {
         }
@@ -37,11 +48,11 @@ function getAllFiles(sourcePath, ignoreRegex = undefined) {
 
 function contego(filepath, es = false, debug = false) {
     if (debug) {
-        console.log(`reading file ${filpath}`)
+        console.log(`reading file ${filepath}`)
     }
     let contents = fs.readFileSync(filepath, { encoding: 'utf8' })
     if (debug) {
-        console.log(`converting file ${filpath}`)
+        console.log(`converting file ${filepath}`)
     }
     let ast = esprima.parse(contents)
     let obfuscated = confusion.transformAst(ast, confusion.createVariableName)
@@ -64,20 +75,36 @@ function contego(filepath, es = false, debug = false) {
 }
 
 function writeFile(filepath, data) {
+    fs.ensureFileSync(filepath)
     fs.writeFileSync(filepath, data, { encoding: 'utf8' })
 }
 
 
-function convertAll(sourcePath, destPath, es = false, debug = false, ignorRegexStr = undefined) {
-    const jsFiles = getAllFiles(sourcePath)
-    jsFiles.forEach(function (file) {
-        const contents = contego(file, es, debug)
-        let dpath = file.replace(sourcePath, destPath)
-        if (debug) {
-            console.log(`writing file ${dpath}`)
+function convertAll(sourcePath, destPath, es = false, error = false, debug = false, ignorRegexStr = undefined) {
+    const jsFiles = getAllFiles(sourcePath, destPath, debug, ignorRegexStr)
+    try {
+        jsFiles.forEach(function (file) {
+            let dpath = file.replace(sourcePath, destPath)
+            try {
+                const contents = contego(file, es, debug)
+                if (debug) {
+                    console.log(`writing file ${dpath}`)
+                }
+                writeFile(dpath, contents)
+            } catch (e) {
+                if (error) {
+                    throw e
+                }
+                console.warn(`error while converting file ${file}`)
+                fs.copyFileSync(file, dpath)
+            }
+        })
+    } catch (e) {
+        if (error) {
+            throw e
         }
-        writeFile(dpath, contents)
-    })
+        console.warn(`error while converting file ${e.message}`)
+    }
     if (debug) {
         console.log(`all js files contego'ed successfully`)
     }
@@ -87,8 +114,9 @@ var program = require('commander')
 
 program
     .version(require('./package').version, '-v, --version')
-    .usage('/Users/pradeep/sourcedir /Users/pradeep/destdir -u js -d false ')
-    .option('-u, --uglify [type]', 'Use uglify, define type of js syntax [js|es|null]', 'js')
+    .usage('/Users/pradeep/sourcedir /Users/pradeep/destdir -u js -d false')
+    .option('-e, --error [type]', 'throw error [true|false]', 'false')
+    .option('-u, --uglify [type]', 'Use uglify, define type of js syntax [js|es|null]', 'es')
     .option('-d, --debug [type]', 'Run in debug mode type of debug [false|true]', 'false')
     .option('-r, --ignore [ignoreRegexString]', 'Regex value to ignore files like ^[a-zA-Z0-9_]+\.js', '')
 
@@ -103,8 +131,18 @@ program
         if (!program.ignore) {
             program.ignore = undefined;
         }
-        convertAll(src, dest, program.uglify, program.debug, program.ignore)
-    });
+        if (program.error == 'true') {
+            program.error = true;
+        } else {
+            program.error = false;
+        }
+        if (program.debug == 'true') {
+            program.debug = true;
+        } else {
+            program.debug = false;
+        }
+        convertAll(src, dest, program.uglify, program.error, program.debug, program.ignore)
+    })
 
-program.parse(process.argv);
+program.parse(process.argv)
 
