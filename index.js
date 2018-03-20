@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 
 const fs = require('fs-extra')
 const path = require('path')
@@ -64,9 +65,6 @@ function uglify(filepath, code, es = false, debug = false) {
     if (es === true) {
         let opts = {
             warnings: debug,
-            debug: debug,
-            beautify: false,
-            bracketize: true,
             compress: {
                 drop_debugger: true,
                 dead_code: true,
@@ -84,29 +82,6 @@ function uglify(filepath, code, es = false, debug = false) {
     return code
 }
 
-function uglifyMultiple(codeObj, es = false, debug = false) {
-    if (es === true) {
-        let opts = {
-            warnings: debug,
-            debug: debug,
-            beautify: false,
-            bracketize: true,
-            compress: {
-                drop_debugger: true,
-                dead_code: true,
-                passes: 2
-            }
-        }
-        let resp = uglifyES.minify(codeObj, opts)
-        if (resp.error) {
-            throw resp.error
-        } else if (resp.warnings) {
-            console.warn(resp.warnings, filepath)
-        }
-        return resp.code
-    }
-    return codeObj
-}
 
 function writeFile(filepath, data) {
     fs.ensureFileSync(filepath)
@@ -114,58 +89,38 @@ function writeFile(filepath, data) {
 }
 
 
-function convertAll(sourcePath, destPath, opts = { es = false, error = false, debug = false, ignorRegexStr = undefined, singleFile = false }) {
+function convertAll(sourcePath, destPath, opts = { es: false, error: false, debug: false, ignorRegexStr: undefined }) {
     let es = opts.es
     let error = opts.error
     let debug = opts.debug
     let ignorRegexStr = opts.ignorRegexStr
-    let singleFile = opts.singleFile
     const jsFiles = getAllFiles(sourcePath, destPath, debug, ignorRegexStr)
-    if (singleFile) {
-        jsFiles = jsFiles.reduce(function (initial, file) {
-            let dpath = file.replace(sourcePath, destPath)
-            try {
-                let contents = contego(file, es, debug)
-                if (debug) {
-                    console.log(`writing file ${dpath}`)
-                }
-                initial[file] = contego
-            } catch (e) {
-                if (error) {
-                    throw e
-                }
-                console.warn(`error while converting file ${file} ${e.message}`)
-                fs.copyFileSync(file, dpath)
+    jsFiles.forEach(function (file) {
+        let dpath = file.replace(sourcePath, destPath)
+        try {
+            let contents = contego(file, es, debug)
+            if (contents) {
+                contents = uglify(file, contents, es, debug)
             }
-            return initial
-        }, {})
-        contents = uglifyMultiple(jsFiles, es, debug)
-        let dpath = path.join(destPath, 'index.js')
-        if (debug) {
-            console.log(`writing file ${dpath}`)
-        }
-        writeFile(dpath, contents)
-    } else {
-        jsFiles.forEach(function (file) {
-            let dpath = file.replace(sourcePath, destPath)
+            if (debug) {
+                console.log(`writing file ${dpath}`)
+            }
+            writeFile(dpath, contents)
+        } catch (e) {
+            if (error) {
+                throw e
+            }
             try {
-                let contents = contego(file, es, debug)
-                if (contents) {
-                    contents = uglify(file, contents, es, debug)
-                }
-                if (debug) {
-                    console.log(`writing file ${dpath}`)
-                }
+                let contents = fs.readFileSync(file, { encoding: 'utf8' })
+                contents = uglify(file, contents, es, debug)
                 writeFile(dpath, contents)
             } catch (e) {
-                if (error) {
-                    throw e
-                }
-                console.warn(`error while converting file ${file} ${e.message}`)
+                console.warn(`failed to convert ${file}  \n${e.message}`)
+                console.info(`copying as it is`)
                 fs.copyFileSync(file, dpath)
             }
-        })
-    }
+        }
+    })
     console.log(`all js files contego'ed successfully`)
 }
 
@@ -174,7 +129,6 @@ var program = require('commander')
 program
     .version(require('./package').version, '-v, --version')
     .usage('/Users/pradeep/sourcedir /Users/pradeep/destdir -u js -d false')
-    .option('-s, --single [type]', 'Make single output index.js file  [true|false]', 'false')
     .option('-e, --error [type]', 'Throw error [true|false]', 'false')
     .option('-u, --uglify [type]', 'Use uglify [true|false]', 'true')
     .option('-d, --debug [type]', 'Run in debug mode type of debug [true|false]', 'false')
@@ -183,10 +137,10 @@ program
 program
     .arguments('<source_dir> <dest_dir>')
     .action(function (src, dest) {
-        if (program.uglify == 'true') {
-            program.uglify = true;
-        } else {
+        if (program.uglify == 'false') {
             program.uglify = false;
+        } else {
+            program.uglify = true;
         }
         if (!program.ignore) {
             program.ignore = undefined;
@@ -201,19 +155,13 @@ program
         } else {
             program.debug = false;
         }
-        if (program.single == 'true') {
-            program.single = true;
-        } else {
-            program.single = false;
-        }
         src = src.replace(/\/+$/, '')
         dest = dest.replace(/\/+$/, '')
         convertAll(src, dest, {
             es: program.uglify,
             error: program.error,
             debug: program.debug,
-            ignorRegexStr: program.ignore,
-            singleFile: program.single
+            ignorRegexStr: program.ignore
         })
     })
 

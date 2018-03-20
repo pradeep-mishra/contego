@@ -1,11 +1,11 @@
 {
   "name": "contego",
-  "version": "0.0.8",
+  "version": "0.0.11",
   "description": "A simple tool to obfuscate++ your js code and make it harder for user to read source files ",
   "main": "index.js",
   "scripts": {},
   "engines": {
-    "node": ">=6.0"
+    "node": ">=8.0"
   },
   "repository": {
     "type": "git",
@@ -13,9 +13,10 @@
   },
   "keywords": [
     "protect",
-    "code-protect",
-    "code",
     "protection",
+    "obfuscate",
+    "obfuscation",
+    "codify",
     "uglify"
   ],
   "author": "Pradeep Mishra <pradeep23oct@gmail.com>",
@@ -31,5 +32,7 @@
     "esprima": "4.0.0",
     "fs-extra": "5.0.0",
     "uglify-es": "3.3.9"
-  }
+  },
+  "preferGlobal": true,
+  "bin": "./index.js"
 }
